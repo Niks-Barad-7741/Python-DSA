@@ -1,0 +1,30 @@
+Function	Code	Big O	Speed Monster Name
+func1	return n * 2	O(1)	 Magic Snap!
+func2	for x in arr:	O(n)	 One-by-One Walker
+func3	for i... for j...	O(n²)	 Handshake Party
+func4	print(arr[0])...	O(1)	 Magic Snap!
+
+
+
+rules: -
+Rule 1: Look for Loops (for or while) 
+No Loops? If there are no loops, it's usually O(1) (Magic Snap!).
+Example: func1 just does math. func4 just prints two things. No looping!
+One Loop? If you see one for loop going through a list, it's O(n) (One-by-One).
+Example: func2 touches every item in the list once.
+Two Loops (Nested)? If you see a loop inside another loop, it's O(n²) (Handshake Party).
+Example: func3 stops at every item, and then stops at every item again. That's n × n!
+
+
+
+Rule 2: Ignore Small Numbers 
+If you do something 2 times or 10 times, but it doesn't grow with the list size, we ignore it!
+Example: In func4, you print twice. But whether the list has 10 items or 10 million items, you still only print 2 times. So it's still O(1)!
+We only care about what happens when the list gets HUGE.
+
+
+
+Rule 3: What is n?
+n means "How many items are in the list?"
+If the function takes a number (like func1), doing math on it is instant. O(1).
+If the function takes a list (like func2), you have to look at the items. That depends on n.
