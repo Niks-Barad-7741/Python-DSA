@@ -119,6 +119,43 @@ print(linear_search(arr, 99))  # Output: -1
 
 Works **only on sorted arrays**. Repeatedly cuts the search space in half by comparing the middle element to the target.
 
+#### 🧮 How to Find `mid`
+
+The midpoint index is calculated as:
+
+```
+mid = (low + high) // 2
+```
+
+**Why this works:**
+- `low` is the start of the current search window, `high` is the end.
+- Their average gives the exact center index.
+- Integer division `//` floors the result so it's always a valid index.
+
+```
+Example:  low=0, high=9
+  mid = (0 + 9) // 2 = 4   ← index 4 is the center
+
+Example:  low=5, high=9
+  mid = (5 + 9) // 2 = 7   ← index 7 is the center of [5..9]
+```
+
+> ⚠️ **Integer Overflow Warning (important in C++/Java):**
+> If `low` and `high` are very large integers, `low + high` can overflow.
+> The **safe formula** is:
+> ```
+> mid = low + (high - low) // 2
+> ```
+> This is mathematically identical but avoids overflow. Python handles big integers
+> natively so both work, but prefer the safe form as a habit.
+
+**After comparing `arr[mid]` to target:**
+- `arr[mid] == target` → found, return `mid`
+- `arr[mid] < target`  → target is in the RIGHT half → `low = mid + 1`
+- `arr[mid] > target`  → target is in the LEFT half  → `high = mid - 1`
+
+We add/subtract 1 because `arr[mid]` itself was already checked and ruled out.
+
 #### 🔍 Visual — Searching for `7` in `[-5, -2, 0, 1, 2, 4, 5, 6, 7, 10]`
 
 ```
@@ -165,7 +202,7 @@ START: low = 0, high = n-1
 └──────────────────┘
   │ YES
   ▼
-mid = (low + high) // 2
+mid = low + (high - low) // 2     ← safe mid formula
   │
   ▼
 ┌──────────────────────┐
@@ -185,13 +222,17 @@ mid = (low + high) // 2
 | Space           | O(1)     |
 | Requires Sorted | ✅ Yes   |
 
+> **Why O(log n)?** Each step halves the search space. Starting with n elements:
+> after 1 step → n/2, after 2 steps → n/4, ... after k steps → n/2ᵏ = 1
+> Solving: k = log₂(n). So at most log₂(n) comparisons are needed.
+
 #### 💻 Code (Python)
 
 ```python
 def binary_search(arr, target):
     low, high = 0, len(arr) - 1
     while low <= high:
-        mid = (low + high) // 2
+        mid = low + (high - low) // 2   # safe mid formula
         if arr[mid] == target:
             return mid
         elif arr[mid] < target:
@@ -212,6 +253,42 @@ print(binary_search(arr, 3))   # Output: -1
 #### 📖 Theory
 
 Divides the sorted array into **three equal parts** using two midpoints (mid1, mid2). Eliminates one third of the array each step.
+
+#### 🧮 How to Find `mid1` and `mid2`
+
+The array from `low` to `high` has a total range of `(high - low)`. To split it into 3 equal thirds:
+
+```
+mid1 = low + (high - low) // 3
+mid2 = high - (high - low) // 3
+```
+
+**Why this formula:**
+- `(high - low) // 3` is the size of one-third of the current window.
+- `mid1` = start + one-third → marks the boundary between the **1st and 2nd** third.
+- `mid2` = end − one-third   → marks the boundary between the **2nd and 3rd** third.
+- The **middle third** lives in the range `(mid1, mid2)` exclusive.
+
+```
+Example:  low=0, high=7  →  range = 7
+
+  one-third = 7 // 3 = 2
+
+  mid1 = 0 + 2 = 2      ← 1/3 from the left
+  mid2 = 7 - 2 = 5      ← 1/3 from the right
+
+  ┌────┬────┬────┬────┬────┬────┬────┬────┐
+  │  0 │  1 │MID1│  3 │  4 │MID2│  6 │  7 │
+  └────┴────┴────┴────┴────┴────┴────┴────┘
+  [── 1st third ──] [── 2nd third ──] [─ 3rd ─]
+```
+
+**Decision logic after computing mid1 and mid2:**
+- `target == arr[mid1]` → found ✅
+- `target == arr[mid2]` → found ✅
+- `target < arr[mid1]`  → target in LEFT third  → `high = mid1 - 1`
+- `target > arr[mid2]`  → target in RIGHT third → `low = mid2 + 1`
+- else                  → target in MIDDLE third → `low = mid1+1, high = mid2-1`
 
 #### 🔍 Visual — Searching for `8` in `[1, 3, 5, 6, 8, 10, 12, 15]`
 
@@ -281,6 +358,11 @@ mid2 = high - (high-low)//3
 | Space           | O(1)      |
 | Requires Sorted | ✅ Yes    |
 
+> **Why O(log₃ n) but NOT faster than Binary Search?**
+> Each step eliminates 1/3 of the array but requires **2 comparisons** (checking both mid1 and mid2).
+> Binary Search eliminates 1/2 of the array with only **1 comparison**.
+> The total comparisons work out higher for Ternary Search in practice — Binary Search is preferred.
+
 #### 💻 Code (Python)
 
 ```python
@@ -310,6 +392,40 @@ print(ternary_search(arr, 8))   # Output: 4
 #### 📖 Theory
 
 **Jumps** forward by √n steps at a time through the sorted array, then does a **linear scan** once the target range is found.
+
+#### 🧮 Why Block Size = √n ?
+
+The block (jump) size is:
+
+```
+step = int(√n)
+```
+
+**Why √n is the optimal block size — derivation:**
+
+Suppose we use a block size of `b`:
+- **Phase 1 jumps** = `n / b` in the worst case (to scan the whole array)
+- **Phase 2 linear steps** = `b - 1` in the worst case (scanning one full block)
+- **Total comparisons** = `n/b + b`
+
+To find the `b` that minimizes this, take the derivative and set to zero:
+
+```
+d/db (n/b + b) = -n/b² + 1 = 0
+→  b² = n
+→  b  = √n   ✅
+```
+
+So `√n` gives minimum total work of `√n + √n = 2√n` → **O(√n)**.
+
+```
+Example:  n = 100
+  optimal b = √100 = 10
+
+  Worst case jumps:  100/10 = 10
+  Worst case linear: 10 - 1 = 9
+  Total: ~19 comparisons  (vs 100 for linear, ~7 for binary)
+```
 
 #### 🔍 Visual — Searching for `55` in `[10, 20, 30, 40, 50, 55, 60, 70, 80, 90]`
 
@@ -382,7 +498,7 @@ import math
 
 def jump_search(arr, target):
     n = len(arr)
-    step = int(math.sqrt(n))
+    step = int(math.sqrt(n))   # optimal block size = √n
     prev = 0
 
     # Phase 1: Jump forward
@@ -412,6 +528,40 @@ print(jump_search(arr, 55))  # Output: 5
 
 **Doubles** the index (1 → 2 → 4 → 8 → 16...) to quickly narrow the range where the target lives, then runs **Binary Search** inside that range. Best for large or unbounded arrays.
 
+#### 🧮 Why Doubling? And Why `i // 2` as the Lower Bound?
+
+**Phase 1 — Why powers of 2 (doubling)?**
+
+The index follows: `i = 1, 2, 4, 8, 16, ...` (i.e., 2⁰, 2¹, 2², 2³, ...)
+
+```
+Each step:  i = i * 2
+```
+
+- Doubling covers exponentially more ground with each step.
+- To reach index `k`, it takes only `log₂(k)` doublings.
+- This locates the correct range in **O(log n)** steps, even before Binary Search begins.
+- Any multiplier > 1 would work, but 2 is standard — it's simple, cache-friendly, and gives exact powers of 2.
+
+**Phase 2 — Why `i // 2` as the lower bound for Binary Search?**
+
+When the loop stops at index `i` (meaning `arr[i] > target`):
+- `arr[i]    > target` → target is NOT at or beyond index `i`
+- `arr[i//2] ≤ target` → the previous step where we didn't stop
+
+So the target **must lie in the window `[i//2, i]`**.
+
+```
+Doubling trace:  i = 1 → 2 → 4 → 8 → stops at 16
+
+  arr[8]  ≤ target   (last step that passed)
+  arr[16] > target   (first overshoot)
+
+  → target lives in  [8, 16]  =  [i//2, min(i, n-1)]   ✅
+```
+
+Binary Search is applied only to this narrow window, not the full array.
+
 #### 🔍 Visual — Searching for `70` in `[5, 10, 20, 35, 50, 60, 70, 80, 90]`
 
 ```
@@ -435,7 +585,7 @@ PHASE 1 — EXPONENTIAL RANGE FINDING
 
 PHASE 2 — BINARY SEARCH in window [4..8]
 ──────────────────────────────────────────
-  low=4, high=8  →  mid=6  →  arr[6]=70 == 70  ✅
+  low=4, high=8  →  mid = 4 + (8-4)//2 = 6  →  arr[6]=70 == 70  ✅
 
        ┌────┬────┬────┬────┬────┬────┬────┬────┬────┐
        │  5 │ 10 │ 20 │ 35 │ 50 │ 60 │[70]│ 80 │ 90 │
@@ -480,7 +630,7 @@ BINARY SEARCH on arr[ i//2 ... min(i, n-1) ]
 ```python
 def binary_search(arr, low, high, target):
     while low <= high:
-        mid = (low + high) // 2
+        mid = low + (high - low) // 2   # safe mid formula
         if arr[mid] == target: return mid
         elif arr[mid] < target: low = mid + 1
         else: high = mid - 1
@@ -492,6 +642,7 @@ def exponential_search(arr, target):
     i = 1
     while i < n and arr[i] <= target:
         i *= 2                          # Double the range
+    # i//2 guaranteed <= target; min(i, n-1) caps the upper bound
     return binary_search(arr, i // 2, min(i, n - 1), target)
 
 arr = [5, 10, 20, 35, 50, 60, 70, 80, 90]
@@ -509,6 +660,24 @@ print(exponential_search(arr, 70))  # Output: 6
 #### 📖 Theory
 
 Returns characters in **reverse order** by swapping from both ends and moving inward.
+
+#### 🧮 How to Set Up the Two Pointers
+
+```
+left  = 0              ← starts at the first character (index 0)
+right = len(s) - 1     ← starts at the last character
+```
+
+After each swap: `left += 1` and `right -= 1`.
+Stop when `left >= right` (pointers meet or cross at the center).
+
+**Total swaps = n // 2** — only half the positions need to be swapped since each swap fixes two characters at once.
+
+```
+"HELLO"  (length = 5)
+  left starts at 0 (H),  right starts at 4 (O)
+  Swaps needed: 5//2 = 2  (indices 0↔4, then 1↔3; center index 2 stays)
+```
 
 #### 🔍 Visual — Reversing `"HELLO"`
 
@@ -533,7 +702,7 @@ Step 2: swap s[1] E  ↔  s[3] L
   │ O │ L │ L │ E │ H │
   └───┴───┴───┴───┴───┘
             ↑
-        left=right=2  →  STOP
+        left=right=2  →  STOP (n//2 = 2 swaps done)
 
 Result:  "OLLEH"  ✅
 ```
@@ -641,6 +810,57 @@ print(reverse_words("Hello World from Python"))
 #### 📖 Theory
 
 A rotation **shifts** all characters by `k` positions left or right, wrapping around. We can also check if one string is a rotation of another.
+
+#### 🧮 How the Rotation Formulas Work
+
+**Left Rotation by k:**
+```
+result = s[k:] + s[:k]
+```
+- `s[k:]` — everything from index k to the end (stays in place)
+- `s[:k]`  — the first k characters (wrap around to the end)
+
+**Right Rotation by k:**
+```
+result = s[-k:] + s[:-k]
+```
+- `s[-k:]`  — the last k characters (wrap around to the front)
+- `s[:-k]`  — everything except the last k characters
+
+**Why `k = k % len(s)` first?**
+Rotating a string of length n by exactly n positions gives back the original.
+So rotating by k is always equivalent to rotating by `k % n`.
+This prevents incorrect slicing when k is larger than the string length.
+
+```
+"ABCDEF"  (length = 6)
+
+Left rotate by k=2:
+  k = 2 % 6 = 2
+  s[2:] + s[:2]  =  "CDEF" + "AB"  =  "CDEFAB"  ✅
+
+Right rotate by k=2:
+  k = 2 % 6 = 2
+  s[-2:] + s[:-2]  =  "EF" + "ABCD"  =  "EFABCD"  ✅
+
+Left rotate by k=8 (k > length):
+  k = 8 % 6 = 2  →  same result as k=2  ✅
+```
+
+**Is Rotation check — why `s2 in (s1 + s1)`?**
+
+Concatenating s1 with itself creates a string that contains **every possible rotation** of s1 as a substring:
+
+```
+s1 = "ABCDEF"
+s1+s1 = "ABCDEFABCDEF"
+         ^^^^^^         rotation by 0  (original)
+          ^^^^^^        rotation by 1
+           ^^^^^^       rotation by 2  ← "CDEFAB" is here
+            ^^^^^^      rotation by 3  ...and so on
+```
+
+If s2 appears anywhere in `s1+s1`, it must be one of those rotations.
 
 #### 🔍 Visual — Left Rotate `"ABCDEF"` by 2
 
@@ -916,6 +1136,30 @@ print(are_anagrams("hello", "world"))       # Output: False
 
 A string is a **palindrome** if it reads identically forwards and backwards.
 
+#### 🧮 How the Two-Pointer Positions Work
+
+```
+left  = 0              ← start of string
+right = len(s) - 1     ← end of string
+```
+
+Both pointers move **inward** by 1 after each successful match.
+Stop condition: `left >= right` (all pairs have been verified).
+
+If at any point `s[left] != s[right]` → immediately return False.
+
+**Total comparisons = n // 2** — only half the string is checked since we compare symmetric pairs simultaneously.
+
+```
+"racecar"  (length = 7)
+  left=0(r), right=6(r)  → match, move inward
+  left=1(a), right=5(a)  → match, move inward
+  left=2(c), right=4(c)  → match, move inward
+  left=3 >= right=3      → STOP, palindrome ✅
+
+  Total comparisons: 7//2 = 3
+```
+
 #### 🔍 Visual — Is `"racecar"` a palindrome?
 
 ```
@@ -946,7 +1190,7 @@ Counter example: "hello"
   └───┴───┴───┴───┴───┘
     ↑               ↑
    left           right
-  s[0]='h'  ≠  s[4]='o'  ❌  →  return False
+  s[0]='h'  ≠  s[4]='o'  ❌  →  return False immediately
 ```
 
 #### ⚙️ Algorithm Flow
@@ -1000,6 +1244,35 @@ print(is_palindrome("hello"))                        # Output: False
 
 Recursion is when a function **calls itself** with a smaller input until a **base case** stops it.
 
+#### 🧮 How Recursion Works — The Call Stack
+
+Every recursive call is pushed onto the **call stack** (a region of memory). Each stack frame stores the function's local variables and the return address. When the base case is reached, frames are **popped** in reverse order (LIFO — Last In, First Out).
+
+```
+Call stack grows DOWN as recursive calls are made:
+  ┌─────────────────────┐  ← pushed last (base case, resolved first)
+  │  factorial(0) = 1   │
+  ├─────────────────────┤
+  │  factorial(1) = 1×? │
+  ├─────────────────────┤
+  │  factorial(2) = 2×? │
+  ├─────────────────────┤
+  │  factorial(3) = 3×? │
+  ├─────────────────────┤
+  │  factorial(4) = 4×? │  ← pushed first (original call)
+  └─────────────────────┘
+
+Resolves back UP once base case returns:
+  factorial(0) = 1
+  factorial(1) = 1 × 1 = 1
+  factorial(2) = 2 × 1 = 2
+  factorial(3) = 3 × 2 = 6
+  factorial(4) = 4 × 6 = 24  ✅
+```
+
+**Stack depth = number of recursive calls.**
+For linear recursion (like factorial): depth = n → **O(n) space**.
+
 #### 🔍 Visual — `factorial(4)` Call Stack
 
 ```
@@ -1036,6 +1309,32 @@ COMING BACK UP (resolving):
   (0+1=1, 1+1=2, 1+2=3)
 ```
 
+> ⚠️ **Fibonacci Time Complexity Warning — O(2ⁿ):**
+>
+> Unlike factorial (which makes 1 call per step), Fibonacci makes **2 calls per step**, forming a binary tree of calls:
+>
+> ```
+> Level 0:  fib(n)              →  1 call
+> Level 1:  fib(n-1), fib(n-2)  →  2 calls
+> Level 2:                       →  4 calls
+> ...
+> Level n:                       →  2ⁿ calls
+>
+> Total ≈ 2⁰ + 2¹ + 2² + ... + 2ⁿ = O(2ⁿ)
+> ```
+>
+> fib(50) would require ~1 quadrillion calls without optimization!
+>
+> **Fix: Memoization** caches already-computed results, reducing to O(n):
+> ```python
+> from functools import lru_cache
+>
+> @lru_cache(maxsize=None)
+> def fibonacci(n):
+>     if n <= 1: return n
+>     return fibonacci(n-1) + fibonacci(n-2)
+> ```
+
 #### 🔍 Visual — Recursive Binary Search
 
 ```
@@ -1070,12 +1369,14 @@ def recursive_function(input):
   ╚══════════════════════════════════════╝
 ```
 
-| Property       | Description                              |
-|----------------|------------------------------------------|
-| Base Case      | Stops recursion — REQUIRED               |
-| Recursive Case | Calls itself with smaller input          |
-| Call Stack     | Each call uses stack memory → O(n) space |
-| Stack Overflow | Happens if base case is missing/wrong    |
+| Property       | Description                                      |
+|----------------|--------------------------------------------------|
+| Base Case      | Stops recursion — REQUIRED                       |
+| Recursive Case | Calls itself with smaller input                  |
+| Call Stack     | Each call uses stack memory → O(n) space         |
+| Stack Overflow | Happens if base case is missing/wrong            |
+| Factorial Time | O(n) — one call per step                         |
+| Fibonacci Time | O(2ⁿ) without memoization — use @lru_cache!      |
 
 #### 💻 Example 1 — Factorial
 
@@ -1093,7 +1394,7 @@ print(factorial(5))  # Output: 120
 def fibonacci(n):
     if n == 0: return 0               # Base case
     if n == 1: return 1               # Base case
-    return fibonacci(n-1) + fibonacci(n-2)  # Recursive case
+    return fibonacci(n-1) + fibonacci(n-2)  # Recursive case — O(2ⁿ) without memo!
 
 for i in range(8):
     print(fibonacci(i), end=" ")      # Output: 0 1 1 2 3 5 8 13
@@ -1103,9 +1404,9 @@ for i in range(8):
 
 ```python
 def binary_search_recursive(arr, target, low, high):
-    if low > high: return -1                    # Base case: not found
-    mid = (low + high) // 2
-    if arr[mid] == target: return mid           # Base case: found
+    if low > high: return -1                       # Base case: not found
+    mid = low + (high - low) // 2                 # safe mid formula
+    if arr[mid] == target: return mid              # Base case: found
     elif arr[mid] < target:
         return binary_search_recursive(arr, target, mid+1, high)
     else:
@@ -1155,6 +1456,7 @@ print(is_palindrome_recursive(s, 0, len(s)-1))  # Output: True
 | Anagram Check      | O(n)     | O(n)     | O(n)  | —       |
 | Palindrome Check   | O(1)     | O(n)     | O(1)  | —       |
 | Recursion (fact.)  | O(n)     | O(n)     | O(n)  | —       |
+| Recursion (fib.)   | O(2ⁿ)    | O(2ⁿ)    | O(n)  | —       |
 
 ---
 
@@ -1166,5 +1468,7 @@ print(is_palindrome_recursive(s, 0, len(s)-1))  # Output: True
 - Use **Jump Search** as a middle ground between linear and binary.
 - Always define a **Base Case** in recursion — missing it causes stack overflow.
 - For string problems, **frequency maps** and **two pointers** solve most challenges.
-
----
+- Always use `mid = low + (high - low) // 2` over `(low + high) // 2` to avoid integer overflow in other languages.
+- Naive Fibonacci recursion is **O(2ⁿ)** — always use memoization (`@lru_cache`) for large inputs.
+- Rotation by k is the same as rotation by `k % n` — always normalize k first.
+- Jump Search's optimal block size `√n` comes from minimizing `n/b + b` → derivative gives `b = √n`.
