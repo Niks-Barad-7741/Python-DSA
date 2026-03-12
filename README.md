@@ -1721,7 +1721,819 @@ Python built-in?               → sorted()/.sort() (TimSort hybrid!)
 
 ---
 
-# 🏆 Complete DSA Summary
+# 🔍 TOPIC 13 — Searching Algorithms
+
+## Why Searching?
+
+```
+You have 1,000,000 employees.
+You need to find "Nikhil".
+
+Bad search   → check every employee one by one → O(n) 🐢
+Smart search → use patterns to find faster     → O(log n) ⚡
+
+Choosing the right algorithm saves MILLIONS of operations!
+```
+
+## All 5 Algorithms at a Glance
+
+| Algorithm | Best | Average | Worst | Space | Sorted? |
+|-----------|------|---------|-------|-------|---------|
+| Linear Search | O(1) | O(n) | O(n) | O(1) | ❌ No |
+| Binary Search | O(1) | O(log n) | O(log n) | O(1) | ✅ Yes |
+| Ternary Search | O(1) | O(log₃ n) | O(log₃ n) | O(1) | ✅ Yes |
+| Jump Search | O(1) | O(√n) | O(√n) | O(1) | ✅ Yes |
+| Exponential Search | O(1) | O(log n) | O(log n) | O(1) | ✅ Yes |
+
+---
+
+## 1️⃣ Linear Search
+
+**Idea:** Check EVERY element one by one until you find the target!
+
+```
+Array:  [64, 25, 12, 45, 11]
+Target: 45
+
+Step 1: 64 == 45? ❌
+Step 2: 25 == 45? ❌
+Step 3: 12 == 45? ❌
+Step 4: 45 == 45? ✅ FOUND at index 3!
+
+Use when: Unsorted array OR small array
+```
+
+**Big O:** Best=O(1) | Average=O(n) | Worst=O(n) | Space=O(1)
+
+```python
+def linear_search(arr, target):
+    for i in range(len(arr)):
+        if arr[i] == target:
+            return i       # found! return index
+    return -1              # not found!
+
+arr = [64, 25, 12, 45, 11]
+print(linear_search(arr, 45))   # 3 ✅
+print(linear_search(arr, 99))   # -1 ✅
+```
+
+---
+
+## 2️⃣ Binary Search
+
+**Idea:** SORTED arrays only! Cut the array in HALF each step!
+
+```
+Sorted: [11, 12, 25, 45, 64, 78, 99]
+Target: 78
+
+Step 1: left=0, right=6, mid=3 → arr[3]=45 < 78 → go RIGHT!
+Step 2: left=4, right=6, mid=5 → arr[5]=78 == 78 ✅ FOUND!
+
+Only 2 steps for 7 elements!
+For 1,000,000 elements → only ~20 steps! ⚡
+
+Rule:
+  arr[mid] == target → FOUND!
+  arr[mid]  < target → go RIGHT (left  = mid+1)
+  arr[mid]  > target → go LEFT  (right = mid-1)
+```
+
+**Big O:** Best=O(1) | Average=O(log n) | Worst=O(log n) | Space=O(1)
+
+```python
+def binary_search(arr, target):
+    left, right = 0, len(arr) - 1
+    while left <= right:
+        mid = left + (right - left) // 2    # avoids overflow!
+        if arr[mid] == target:   return mid
+        elif arr[mid] < target:  left  = mid + 1   # go RIGHT!
+        else:                    right = mid - 1   # go LEFT!
+    return -1
+
+arr = [11, 12, 25, 45, 64, 78, 99]    # MUST be sorted!
+print(binary_search(arr, 78))   # 5 ✅
+print(binary_search(arr, 50))   # -1 ✅
+```
+
+---
+
+## 3️⃣ Ternary Search
+
+**Idea:** Like Binary but divides into THREE parts using TWO midpoints!
+
+```
+Sorted: [11, 12, 25, 45, 64, 78, 99]
+Target: 78
+
+Step 1:
+  mid1 = left + (right-left)//3 = 2 → arr[2]=25
+  mid2 = right - (right-left)//3 = 4 → arr[4]=64
+
+  78 > arr[mid2]=64 → go RIGHT third!
+
+Step 2: left=5, mid1=5 → arr[5]=78 ✅ FOUND!
+
+3 Regions:
+  target < arr[mid1] → LEFT third   (right = mid1-1)
+  target > arr[mid2] → RIGHT third  (left  = mid2+1)
+  else               → MIDDLE third
+```
+
+**Big O:** Best=O(1) | Average=O(log₃ n) | Worst=O(log₃ n) | Space=O(1)
+
+```python
+def ternary_search(arr, target):
+    left, right = 0, len(arr) - 1
+    while left <= right:
+        third = (right - left) // 3
+        mid1  = left  + third      # 1/3 point
+        mid2  = right - third      # 2/3 point
+        if arr[mid1] == target: return mid1
+        if arr[mid2] == target: return mid2
+        if target < arr[mid1]:    right = mid1 - 1   # left third!
+        elif target > arr[mid2]:  left  = mid2 + 1   # right third!
+        else:  left = mid1 + 1;   right = mid2 - 1   # middle third!
+    return -1
+
+arr = [11, 12, 25, 45, 64, 78, 99]
+print(ternary_search(arr, 78))   # 5 ✅
+print(ternary_search(arr, 50))   # -1 ✅
+```
+
+---
+
+## 4️⃣ Jump Search
+
+**Idea:** Jump in fixed steps of √n, then linear search backwards!
+
+```
+Sorted: [11, 12, 25, 45, 64, 78, 99, 112, 130]
+Target: 78   |   Step = √9 = 3
+
+JUMP phase:
+  index 0→2  → arr[2]=25  < 78 → jump!
+  index 3→5  → arr[5]=78 ≥ 78 → STOP! Overshot!
+
+LINEAR phase (search back from index 3):
+  arr[3]=45 < 78 → forward
+  arr[4]=64 < 78 → forward
+  arr[5]=78 == 78 ✅ FOUND!
+
+Why √n step? Jump n/√n = √n times + √n linear = O(√n) total!
+```
+
+**Big O:** Best=O(1) | Average=O(√n) | Worst=O(√n) | Space=O(1)
+
+```python
+import math
+
+def jump_search(arr, target):
+    n    = len(arr)
+    step = int(math.sqrt(n))    # optimal step = √n
+    prev = 0
+    while arr[min(step, n) - 1] < target:
+        prev = step
+        step += int(math.sqrt(n))
+        if prev >= n: return -1
+    while arr[prev] < target:
+        prev += 1
+        if prev == min(step, n): return -1
+    if arr[prev] == target: return prev
+    return -1
+
+arr = [11, 12, 25, 45, 64, 78, 99, 112, 130]
+print(jump_search(arr, 78))    # 5 ✅
+print(jump_search(arr, 50))    # -1 ✅
+```
+
+---
+
+## 5️⃣ Exponential Search
+
+**Idea:** DOUBLE the index until overshoot, then Binary Search in that range!
+
+```
+Sorted: [11, 12, 25, 45, 64, 78, 99, 112, 130]
+Target: 78
+
+DOUBLING phase:
+  index 1 → arr[1]=12  ≤ 78 → double to 2!
+  index 2 → arr[2]=25  ≤ 78 → double to 4!
+  index 4 → arr[4]=64  ≤ 78 → double to 8!
+  index 8 → arr[8]=130 > 78 → STOP! Overshot!
+
+Binary Search in arr[4..8] → finds 78 at index 5! ✅
+
+Why useful?
+→ Unbounded arrays (unknown size!)
+→ Target near the start → finds range quickly!
+```
+
+**Big O:** Best=O(1) | Average=O(log n) | Worst=O(log n) | Space=O(1)
+
+```python
+def binary_search_range(arr, target, left, right):
+    while left <= right:
+        mid = left + (right - left) // 2
+        if arr[mid] == target:   return mid
+        elif arr[mid] < target:  left  = mid + 1
+        else:                    right = mid - 1
+    return -1
+
+def exponential_search(arr, target):
+    n = len(arr)
+    if arr[0] == target: return 0
+    i = 1
+    while i < n and arr[i] <= target:
+        i *= 2                              # double!
+    left  = i // 2
+    right = min(i, n - 1)
+    return binary_search_range(arr, target, left, right)  # search range only!
+
+arr = [11, 12, 25, 45, 64, 78, 99, 112, 130]
+print(exponential_search(arr, 78))    # 5 ✅
+print(exponential_search(arr, 11))    # 0 ✅
+print(exponential_search(arr, 50))    # -1 ✅
+```
+
+---
+
+## When to Use Which Searching Algorithm?
+
+```
+Unsorted array?              → Linear Search   (only option!)
+Sorted array, general?       → Binary Search   (O(log n) always!)
+Sorted, unimodal function?   → Ternary Search  (peak/min finding!)
+Sorted, simple to code?      → Jump Search     (O(√n), easy!)
+Unbounded / infinite array?  → Exponential     (unknown size!)
+Target near the start?       → Exponential     (doubles fast!)
+```
+
+### Performance on n = 1,000,000 elements:
+```
+Linear Search      → up to 1,000,000 steps 😱
+Jump Search        →          1,000 steps  (√1M)
+Binary Search      →             20 steps  ⚡
+Exponential Search →             20 steps  ⚡
+```
+
+---
+
+# 🔤 TOPIC 14 — String Manipulation Algorithms
+
+## Why String Manipulation?
+
+```
+Strings are everywhere in real software:
+→ User input validation
+→ Search engines
+→ Password checkers
+→ Chat apps, compilers, IDEs
+
+These 7 problems are the most asked in coding interviews!
+```
+
+## All 7 Problems at a Glance
+
+| Problem | Technique | Time | Space |
+|---------|-----------|------|-------|
+| Reverse a String | Two Pointer | O(n) | O(n) |
+| Reverse Words | Split + Two Pointer | O(n) | O(n) |
+| Rotations | Slicing | O(n) | O(n) |
+| Remove Duplicates | Set + List | O(n) | O(k) |
+| Most Repeated Char | Hash Map | O(n) | O(k) |
+| Anagram | Sort / Frequency Map | O(n log n) / O(n) | O(n) |
+| Palindrome | Two Pointer | O(n) | O(1) |
+
+---
+
+## 1️⃣ Reversing a String
+
+**Idea:** Two pointers — one at start, one at end — swap and move inward!
+
+```
+s = ['H', 'e', 'l', 'l', 'o']
+     ↑                    ↑
+   left=0              right=4
+
+Step 1: swap H ↔ o → ['o', 'e', 'l', 'l', 'H']
+Step 2: swap e ↔ l → ['o', 'l', 'l', 'e', 'H']
+Step 3: left=2, right=2 → STOP!
+Result: 'olleH' ✅
+```
+
+```python
+# Method 1 — Two Pointer (manual)
+def string_reversal(s):
+    s     = list(s)
+    left  = 0
+    right = len(s) - 1
+    while left < right:
+        s[left], s[right] = s[right], s[left]
+        left  += 1
+        right -= 1
+    return ''.join(s)
+
+# Method 2 — Slicing (one-liner!)
+def string_reversal_slice(s):
+    return s[::-1]
+
+print(string_reversal("Hello, World!"))   # '!dlroW ,olleH' ✅
+print(string_reversal_slice("nikhil"))    # 'lihkin' ✅
+```
+
+---
+
+## 2️⃣ Reversing Words
+
+**Idea:** Split sentence into words, then reverse the ORDER of words (not letters)!
+
+```
+s = "Hello World from Python"
+
+Split:  ['Hello', 'World', 'from', 'Python']
+Swap:   ['Python', 'from', 'World', 'Hello']
+Join:   'Python from World Hello' ✅
+
+NOTE: Letters INSIDE each word stay the same!
+      Only the ORDER of words is reversed!
+```
+
+```python
+# Method 1 — Two Pointer (manual)
+def reverse_words(s):
+    words = s.split()
+    left, right = 0, len(words) - 1
+    while left < right:
+        words[left], words[right] = words[right], words[left]
+        left += 1; right -= 1
+    return ' '.join(words)
+
+# Method 2 — Built-in
+def reverse_words_builtin(s):
+    return ' '.join(s.split()[::-1])
+
+print(reverse_words("Hello World from Python"))   # 'Python from World Hello' ✅
+```
+
+---
+
+## 3️⃣ String Rotations
+
+**Idea:** Shift all characters left or right by n positions!
+
+```
+s = "ABCDEF"   n = 2
+
+LEFT  ROTATE: s[2:] + s[:2]  → 'CDEF' + 'AB'  → 'CDEFAB' ✅
+RIGHT ROTATE: s[-2:] + s[:-2] → 'EF' + 'ABCD'  → 'EFABCD' ✅
+
+IS ROTATION trick:
+  s1+s1 = 'ABCDEFABCDEF'
+  Is 'CDEFAB' in 'ABCDEFABCDEF'? → YES! ✅
+  Any rotation of s1 always appears inside s1+s1!
+
+Why n % len(s)?
+  Rotating 8 on length-6 string = rotating by 2!
+  8 % 6 = 2 → prevents unnecessary full rotations!
+```
+
+```python
+def left_rotate(s, n):
+    n = n % len(s)
+    return s[n:] + s[:n]
+
+def right_rotate(s, n):
+    n = n % len(s)
+    return s[-n:] + s[:-n]
+
+def is_rotation(s1, s2):
+    return len(s1) == len(s2) and s2 in (s1 + s1)
+
+print(left_rotate("ABCDEF", 2))          # 'CDEFAB' ✅
+print(right_rotate("ABCDEF", 2))         # 'EFABCD' ✅
+print(is_rotation("ABCDEF", "CDEFAB"))   # True ✅
+print(is_rotation("ABCDEF", "ABCXYZ"))   # False ✅
+```
+
+---
+
+## 4️⃣ Removing Duplicates
+
+**Idea:** Use a set to track seen characters — only keep first occurrence!
+
+```
+s = 'programming'
+
+'p' → not seen → ADD → result=[p]
+'r' → not seen → ADD → result=[p,r]
+'o' → not seen → ADD → result=[p,r,o]
+'g' → not seen → ADD → result=[p,r,o,g]
+'r' → SEEN     → SKIP ❌
+'a' → not seen → ADD → result=[p,r,o,g,a]
+'m' → not seen → ADD → result=[p,r,o,g,a,m]
+'m' → SEEN     → SKIP ❌
+'i' → not seen → ADD → result=[p,r,o,g,a,m,i]
+'n' → not seen → ADD → result=[p,r,o,g,a,m,i,n]
+'g' → SEEN     → SKIP ❌
+
+Result: 'programin' ✅
+```
+
+```python
+def remove_duplicates(s):
+    seen   = set()
+    result = []
+    for char in s:
+        if char not in seen:
+            seen.add(char)
+            result.append(char)
+    return ''.join(result)
+
+print(remove_duplicates("programming"))   # 'programin' ✅
+print(remove_duplicates("aabbccdd"))      # 'abcd' ✅
+print(remove_duplicates("nikhil"))        # 'nikhl' ✅
+```
+
+---
+
+## 5️⃣ Most Repeated Character
+
+**Idea:** Count frequency of every character using a hash map, return max!
+
+```
+s = 'programming'
+
+Frequency map: {p:1, r:2, o:1, g:2, a:1, m:2, i:1, n:1}
+
+max by value → 'r' (first with count 2)
+
+Result: 'r' ✅ (appears 2 times)
+```
+
+```python
+def most_frequent(s):
+    frequency = {}
+    for char in s:
+        frequency[char] = frequency.get(char, 0) + 1
+    return max(frequency, key=frequency.get)
+
+def most_frequent_with_count(s):
+    frequency = {}
+    for char in s:
+        frequency[char] = frequency.get(char, 0) + 1
+    best = max(frequency, key=frequency.get)
+    return best, frequency[best]
+
+char, count = most_frequent_with_count("programming")
+print(f"'{char}' appears {count} times")   # 'r' appears 2 times ✅
+
+char, count = most_frequent_with_count("aabbbbcc")
+print(f"'{char}' appears {count} times")   # 'b' appears 4 times ✅
+```
+
+---
+
+## 6️⃣ Anagrams
+
+**Definition:** Two strings with the **same characters** in **different order**!
+
+```
+'listen' and 'silent'
+  sorted: e,i,l,n,s,t  =  e,i,l,n,s,t  → ANAGRAM! ✅
+
+'hello' and 'world'
+  sorted: e,h,l,l,o  ≠  d,l,o,r,w      → NOT anagram! ❌
+
+Method 1 — Sort:        O(n log n)
+Method 2 — Freq Map:    O(n) ← faster!
+```
+
+```python
+# Method 1 — Sort and compare
+def anagram_sort(s1, s2):
+    return sorted(s1.lower()) == sorted(s2.lower())
+
+# Method 2 — Frequency map (O(n)!)
+def anagram_frequency(s1, s2):
+    if len(s1) != len(s2): return False
+    freq = {}
+    for char in s1: freq[char] = freq.get(char, 0) + 1   # count s1!
+    for char in s2:
+        freq[char] = freq.get(char, 0) - 1                # subtract s2!
+        if freq[char] < 0: return False                    # s2 has extra char!
+    return True
+
+print(anagram_sort("listen", "silent"))       # True ✅
+print(anagram_sort("hello", "world"))         # False ✅
+print(anagram_frequency("listen", "silent"))  # True ✅
+print(anagram_frequency("hello", "world"))    # False ✅
+```
+
+---
+
+## 7️⃣ Palindrome
+
+**Definition:** Reads the same forwards AND backwards!
+
+```
+'madam' → forward: m-a-d-a-m
+           backward: m-a-d-a-m → SAME! ✅
+
+'hello' → forward: h-e-l-l-o
+           backward: o-l-l-e-h → DIFFERENT! ❌
+
+Two Pointer:
+  m  a  d  a  m
+  ↑              ↑
+left=0        right=4
+
+Step 1: s[0]='m' == s[4]='m' ✅ → move inward
+Step 2: s[1]='a' == s[3]='a' ✅ → move inward
+Step 3: left=2 >= right=2 → STOP → Palindrome! ✅
+```
+
+```python
+# Method 1 — Two Pointer (O(1) space!)
+def palindrome(s):
+    left  = 0
+    right = len(s) - 1
+    while left < right:
+        if s[left] != s[right]: return False
+        left  += 1
+        right -= 1
+    return True
+
+# Method 2 — Slicing (O(n) space)
+def palindrome_slice(s):
+    return s == s[::-1]
+
+# Real world — ignore spaces and case!
+def palindrome_clean(s):
+    cleaned = ''.join(c.lower() for c in s if c.isalnum())
+    return palindrome(cleaned)
+
+print(palindrome("madam"))                           # True ✅
+print(palindrome("hello"))                           # False ✅
+print(palindrome_clean("A man a plan a canal Panama"))  # True ✅
+```
+
+---
+
+# 🔁 TOPIC 15 — Recursion
+
+## What is Recursion?
+
+```
+A function that calls ITSELF to solve smaller
+versions of the same problem!
+
+factorial(5)
+  └─ 5 × factorial(4)
+         └─ 4 × factorial(3)
+                └─ 3 × factorial(2)
+                       └─ 2 × factorial(1)
+                              └─ 1 × factorial(0)
+                                     └─ 1  ← BASE CASE!
+```
+
+## Every Recursive Function MUST have:
+
+```
+1. BASE CASE      → the STOPPING condition (prevents infinite loop!)
+2. RECURSIVE CASE → calls itself with a SMALLER input!
+
+Without base case → Stack Overflow! 💥
+Without getting smaller → infinite recursion! 💥
+```
+
+## How the Call Stack Works:
+
+```
+PUSH phase (going DOWN):     POP phase (coming back UP):
+┌─────────────────┐          factorial(0) → 1
+│ factorial(0)    │          factorial(1) → 1×1 = 1
+│ factorial(1)    │          factorial(2) → 2×1 = 2
+│ factorial(2)    │          factorial(3) → 3×2 = 6 ✅
+│ factorial(3)    │
+└─────────────────┘
+      CALL STACK
+```
+
+## Recursion vs Iteration:
+
+| | Recursion | Iteration |
+|--|-----------|----------|
+| Code | Cleaner, elegant | More explicit |
+| Memory | O(n) call stack | O(1) |
+| Speed | Slightly slower | Slightly faster |
+| Best for | Trees, Graphs, D&C | Simple loops |
+
+---
+
+## 1️⃣ Factorial
+
+**Formula:** `n! = n × (n-1)!` | **Base:** `factorial(0) = 1`
+
+```
+factorial(4):
+  → 4 × factorial(3)
+         → 3 × factorial(2)
+                → 2 × factorial(1)
+                       → 1 × factorial(0)
+                              → 1  ← BASE!
+Coming back:
+  factorial(1) = 1×1 = 1
+  factorial(2) = 2×1 = 2
+  factorial(3) = 3×2 = 6
+  factorial(4) = 4×6 = 24 ✅
+```
+
+**Big O:** Time=O(n) | Space=O(n) — n frames on call stack!
+
+```python
+def factorial(n):
+    if n < 0:  return "Negative number is not allowed!"
+    if n == 0: return 1                      # BASE CASE!
+    return n * factorial(n - 1)              # RECURSIVE CASE!
+
+print(factorial(0))    # 1 ✅
+print(factorial(5))    # 120 ✅
+print(factorial(10))   # 3628800 ✅
+print(factorial(-3))   # Negative number is not allowed! ✅
+```
+
+---
+
+## 2️⃣ Fibonacci
+
+**Formula:** `fib(n) = fib(n-1) + fib(n-2)` | **Base:** `fib(0)=0, fib(1)=1`
+
+```
+Sequence: 0, 1, 1, 2, 3, 5, 8, 13, 21, 34 ...
+
+⚠️ Naive recursion is O(2ⁿ) — fib(3) computed multiple times!
+
+fib(5):
+          fib(5)
+         /      \
+      fib(4)   fib(3)  ← computed twice!
+      /    \
+   fib(3) fib(2)       ← computed again!
+
+✅ Fix: Memoization — cache results → O(n)!
+```
+
+**Big O:** Naive=O(2ⁿ) 😱 | Memoized=O(n) ✅ | Space=O(n)
+
+```python
+# Naive — O(2ⁿ)
+def fibonacci(n):
+    if n < 0:  return "Negative number is not allowed!"   # guard FIRST!
+    if n == 0: return 0
+    if n == 1: return 1
+    return fibonacci(n - 1) + fibonacci(n - 2)
+
+# Memoized — O(n) ← much faster!
+def fibonacci_memo(n, memo={}):
+    if n < 0:      return "Negative number is not allowed!"
+    if n == 0:     return 0
+    if n == 1:     return 1
+    if n in memo:  return memo[n]      # already computed? return instantly!
+    memo[n] = fibonacci_memo(n-1, memo) + fibonacci_memo(n-2, memo)
+    return memo[n]
+
+print([fibonacci(i) for i in range(10)])   # [0,1,1,2,3,5,8,13,21,34] ✅
+print(fibonacci_memo(30))                   # 832040 — instant! ✅
+```
+
+---
+
+## 3️⃣ Recursive Binary Search
+
+**Idea:** Same as iterative, but pass the range recursively!
+
+```
+binary_search(arr, 9, L=0, R=8)
+  M=4 → arr[4]=5 < 9 → go RIGHT!
+  └─ binary_search(arr, 9, L=5, R=8)
+       M=6 → arr[6]=7 < 9 → go RIGHT!
+       └─ binary_search(arr, 9, L=7, R=8)
+            M=7 → arr[7]=8 < 9 → go RIGHT!
+            └─ binary_search(arr, 9, L=8, R=8)
+                 M=8 → arr[8]=9 == 9 ✅ return 8!
+
+BASE CASES:
+  L > R          → return -1  (not found!)
+  arr[M]==target → return M   (found!)
+```
+
+**Big O:** Time=O(log n) | Space=O(log n) — log n frames on call stack!
+
+```python
+def binary_search_recursive(arr, target, L, R):
+    if L > R: return -1                                 # BASE CASE — not found!
+    M = L + ((R - L) // 2)
+    if arr[M] == target: return M                       # BASE CASE — found!
+    if arr[M] > target:  return binary_search_recursive(arr, target, L, M-1)   # LEFT!
+    return binary_search_recursive(arr, target, M+1, R)                         # RIGHT!
+
+arr = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+print(binary_search_recursive(arr, 9,  0, len(arr)-1))   # 8 ✅
+print(binary_search_recursive(arr, 1,  0, len(arr)-1))   # 0 ✅
+print(binary_search_recursive(arr, 10, 0, len(arr)-1))   # -1 ✅
+```
+
+---
+
+## 4️⃣ Recursive String Reversal
+
+**Idea:** Take LAST character + recursively reverse the rest!
+
+```
+reverse('Hello')
+  = 'o' + reverse('Hell')
+           = 'l' + reverse('Hel')
+                    = 'l' + reverse('He')
+                             = 'e' + reverse('H')
+                                      = 'H' + reverse('')
+                                               = ''  ← BASE CASE!
+
+Coming back up:
+  'H' → 'eH' → 'leH' → 'lleH' → 'olleH' ✅
+```
+
+**Big O:** Time=O(n) | Space=O(n) — n frames on call stack!
+
+```python
+def reverse_string(s):
+    if len(s) == 0: return s                 # BASE CASE!
+    return s[-1] + reverse_string(s[:-1])    # RECURSIVE CASE!
+
+print(reverse_string("nikhil"))         # 'lihkin' ✅
+print(reverse_string("Hello, World!"))  # '!dlroW ,olleH' ✅
+print(reverse_string("racecar"))        # 'racecar' ✅
+```
+
+---
+
+## 5️⃣ Recursive Palindrome
+
+**Idea:** Compare outermost characters — if match, recurse inward!
+
+```
+is_palindrome('madam', left=0, right=4)
+
+Step 1: s[0]='m' == s[4]='m' ✅ → recurse inward!
+  └─ is_palindrome('madam', left=1, right=3)
+       Step 2: s[1]='a' == s[3]='a' ✅ → recurse inward!
+         └─ is_palindrome('madam', left=2, right=2)
+              Step 3: left=2 >= right=2 → BASE CASE → True! ✅
+
+BASE CASES:
+  left >= right        → True  (all matched!)
+  s[left] != s[right] → False (mismatch!)
+```
+
+**Big O:** Time=O(n) | Space=O(n) — n/2 frames on call stack!
+
+```python
+def is_palindrome_recursive(s, left, right):
+    if left >= right:       return True                          # BASE CASE!
+    if s[left] != s[right]: return False                         # BASE CASE!
+    return is_palindrome_recursive(s, left + 1, right - 1)       # RECURSIVE!
+
+# Wrapper — no need to pass left/right manually!
+def palindrome_recursive(s):
+    return is_palindrome_recursive(s, 0, len(s) - 1)
+
+print(palindrome_recursive("madam"))    # True ✅
+print(palindrome_recursive("hello"))    # False ✅
+print(palindrome_recursive("racecar"))  # True ✅
+```
+
+---
+
+## When to Use Recursion vs Iteration?
+
+```
+Use RECURSION when:
+  → Problem naturally divides into smaller subproblems
+  → Working with Trees, Graphs, Divide & Conquer
+  → Code clarity matters more than raw speed
+  → e.g. Tree traversal, Merge Sort, DFS
+
+Use ITERATION when:
+  → Simple loops are sufficient
+  → Memory efficiency is critical (O(1) vs O(n) stack)
+  → Risk of deep recursion / Stack Overflow
+  → e.g. Summing a list, finding max, linear search
+```
+
+---
+
+# 🏆 Complete DSA Summary — All 15 Topics
 
 ## All Data Structures at a Glance
 
@@ -1738,39 +2550,95 @@ Python built-in?               → sorted()/.sort() (TimSort hybrid!)
 | Trie | — | O(m) ⚡ | O(m) ⚡ | String prefix search |
 | Graph | — | O(V+E) | O(1) | Networks, maps |
 
-## Which to Use When?
+## All Searching Algorithms at a Glance
 
-```
-Fast access by index?           → Array
-Fast insert at start?           → Linked List
-LIFO (undo, back button)?       → Stack
-FIFO (queue, scheduling)?       → Queue
-Key-value O(1) lookup?          → Hash Table
-Sorted data, range queries?     → BST / AVL Tree
-Always need min or max?         → Heap
-Autocomplete, prefix search?    → Trie
-Model a network or map?         → Graph
-```
+| Algorithm | Best | Worst | Sorted? | Best For |
+|-----------|------|-------|---------|---------|
+| Linear | O(1) | O(n) | No | Unsorted / small arrays |
+| Binary | O(1) | O(log n) | Yes | General purpose |
+| Ternary | O(1) | O(log₃ n) | Yes | Unimodal functions |
+| Jump | O(1) | O(√n) | Yes | Simple sorted search |
+| Exponential | O(1) | O(log n) | Yes | Unbounded arrays |
 
-## Sorting Algorithm Quick Pick
+## All Sorting Algorithms at a Glance
 
-```
-General sorting?                → Merge Sort or Quick Sort
-Small or nearly sorted data?    → Insertion Sort
-Integer data, small range?      → Counting Sort
-Uniform float distribution?     → Bucket Sort
-Production Python code?         → sorted() — uses TimSort internally!
-```
+| Algorithm | Best | Average | Worst | Space | Stable |
+|-----------|------|---------|-------|-------|--------|
+| Bubble | O(n) | O(n²) | O(n²) | O(1) | ✅ |
+| Selection | O(n²) | O(n²) | O(n²) | O(1) | ❌ |
+| Insertion | O(n) | O(n²) | O(n²) | O(1) | ✅ |
+| Merge | O(n log n) | O(n log n) | O(n log n) | O(n) | ✅ |
+| Quick | O(n log n) | O(n log n) | O(n²) | O(log n) | ❌ |
+| Counting | O(n+k) | O(n+k) | O(n+k) | O(k) | ✅ |
+| Bucket | O(n+k) | O(n+k) | O(n²) | O(n) | ✅ |
 
-## Big O Quick Reference
+## All String Problems at a Glance
+
+| Problem | Technique | Time | Space |
+|---------|-----------|------|-------|
+| Reverse String | Two Pointer | O(n) | O(n) |
+| Reverse Words | Split + Swap | O(n) | O(n) |
+| Rotation | Slicing | O(n) | O(n) |
+| Remove Duplicates | Set + List | O(n) | O(k) |
+| Most Frequent Char | Hash Map | O(n) | O(k) |
+| Anagram | Freq Map | O(n) | O(k) |
+| Palindrome | Two Pointer | O(n) | O(1) |
+
+## All Recursion Problems at a Glance
+
+| Problem | Base Case | Time | Space |
+|---------|-----------|------|-------|
+| Factorial | n==0 → 1 | O(n) | O(n) |
+| Fibonacci (naive) | n≤1 → n | O(2ⁿ) | O(n) |
+| Fibonacci (memo) | n≤1 → n | O(n) | O(n) |
+| Binary Search | L>R or found | O(log n) | O(log n) |
+| String Reversal | len==0 | O(n) | O(n) |
+| Palindrome | left≥right | O(n) | O(n) |
+
+## Master Big O Reference
 
 ```
 O(1)       → Constant    — instant, no loops
 O(log n)   → Log         — binary search, halving each step
+O(√n)      → Square root — jump search
 O(n)       → Linear      — single loop
 O(n log n) → Log-Linear  — efficient sorting
 O(n²)      → Quadratic   — nested loops (avoid for large n!)
-O(2ⁿ)      → Exponential → avoid! (slow recursion without memoization)
+O(2ⁿ)      → Exponential → avoid! (naive recursion without memo)
+```
+
+## Master Decision Guide
+
+```
+CHOOSING A DATA STRUCTURE:
+  Fast access by index?           → Array
+  Fast insert at start?           → Linked List
+  LIFO (undo, back button)?       → Stack
+  FIFO (queue, scheduling)?       → Queue
+  Key-value O(1) lookup?          → Hash Table
+  Sorted data, range queries?     → BST / AVL Tree
+  Always need min or max fast?    → Heap
+  Autocomplete, prefix search?    → Trie
+  Model a network or map?         → Graph
+
+CHOOSING A SEARCH ALGORITHM:
+  Unsorted array?                 → Linear Search
+  Sorted, general purpose?        → Binary Search
+  Sorted, unknown size?           → Exponential Search
+  Peak in unimodal function?      → Ternary Search
+
+CHOOSING A SORT ALGORITHM:
+  General purpose?                → Merge Sort
+  Memory constrained?             → Quick Sort
+  Small or nearly sorted?         → Insertion Sort
+  Integers, small range?          → Counting Sort
+  Uniform float distribution?     → Bucket Sort
+  Python production code?         → sorted() / .sort()
+
+RECURSION vs ITERATION:
+  Trees, Graphs, D&C problems?    → Recursion
+  Simple loops, memory critical?  → Iteration
+  Fibonacci, large n?             → Memoized Recursion
 ```
 
 ---
@@ -1781,3 +2649,4 @@ O(2ⁿ)      → Exponential → avoid! (slow recursion without memoization)
 - **collections.deque** — efficient Queue implementation
 - **Built-in dict** — Hash Table implementation
 - **heapq module** — built-in Min Heap / Priority Queue
+- **math module** — math.sqrt() for Jump Search
